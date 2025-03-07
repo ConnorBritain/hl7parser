@@ -1,3 +1,4 @@
+import sys
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTextEdit, QPushButton, QFileDialog, QMessageBox,
                              QTreeView, QLabel, QSplitter, QFrame)
@@ -141,6 +142,11 @@ class MainWindow(QMainWindow):
             return
         
         root_item = QStandardItem(structure['name'])
+        
+        # Add tooltip to root item if description exists
+        if 'description' in structure and structure['description']:
+            root_item.setToolTip(structure['description'])
+            
         if structure['value']:
             value_item = QStandardItem(structure['value'])
             self.tree_model.appendRow([root_item, value_item])
@@ -168,8 +174,13 @@ class MainWindow(QMainWindow):
                 # Add tooltip with description
                 child_item = QStandardItem(name_text)
                 child_item.setToolTip(child['description'])
+                # Print first 5 items for debugging
+                if len(parent_item.text()) <= 3:  # Only for top-level segments
+                    print(f"Added tooltip for {name_text}: {child['description']}", file=sys.stderr)
             else:
                 child_item = QStandardItem(name_text)
+                if len(parent_item.text()) <= 3:  # Only for top-level segments
+                    print(f"No description for {name_text}", file=sys.stderr)
                 
             value_item = QStandardItem(child['value'] if child['value'] else "")
             

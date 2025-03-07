@@ -2,7 +2,18 @@ from hl7apy.parser import parse_message
 from hl7apy.core import Message
 import io
 import re
-from .hl7_definitions import HL7_SEGMENTS, HL7_FIELDS, ADT_CODES
+import sys
+
+# Try to import definitions or provide fallback
+try:
+    from .hl7_definitions import HL7_SEGMENTS, HL7_FIELDS, ADT_CODES
+    print("Successfully imported HL7 definitions", file=sys.stderr)
+except ImportError as e:
+    print(f"Error importing HL7 definitions: {e}", file=sys.stderr)
+    # Fallback empty definitions
+    HL7_SEGMENTS = {}
+    HL7_FIELDS = {}
+    ADT_CODES = {}
 
 class HL7Parser:
     def __init__(self):
