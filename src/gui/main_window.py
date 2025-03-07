@@ -1,5 +1,6 @@
 import sys
 import os
+import pathlib
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTextEdit, QPushButton, QFileDialog, QMessageBox,
                              QTreeView, QLabel, QSplitter, QFrame)
@@ -17,6 +18,9 @@ class MainWindow(QMainWindow):
         
         # Settings for the application
         self.settings = QSettings("HL7Parser", "hl7parser")
+        
+        # Keep track of the loaded file path
+        self.loaded_file_path = None
         
         self.init_ui()
         
@@ -122,6 +126,17 @@ class MainWindow(QMainWindow):
             return
         
         try:
+            # Clear the loaded file path if manually parsing text
+            # (only if the text doesn't match the loaded file)
+            if self.loaded_file_path:
+                try:
+                    with open(self.loaded_file_path, 'r') as f:
+                        if f.read().strip() != text:
+                            self.loaded_file_path = None
+                except:
+                    # If there's any error reading the file, just reset the path
+                    self.loaded_file_path = None
+                            
             self.parser.parse_text(text)
             self.display_message_structure()
         except ValueError as e:
@@ -139,6 +154,10 @@ class MainWindow(QMainWindow):
             self.parser.parse_file(file_path)
             with open(file_path, 'r') as f:
                 self.input_text.setPlainText(f.read())
+                
+            # Store the loaded file path for later use in export
+            self.loaded_file_path = file_path
+            
             self.display_message_structure()
         except ValueError as e:
             QMessageBox.critical(self, "Error", str(e))
@@ -227,6 +246,9 @@ class MainWindow(QMainWindow):
         self.input_text.clear()
         self.tree_model.clear()
         self.tree_model.setHorizontalHeaderLabels(["Element", "Description", "Value"])
+        
+        # Clear the loaded file path as well
+        self.loaded_file_path = None
     
     def copy_to_clipboard(self):
         if not self.parser.message:
@@ -259,8 +281,24 @@ class MainWindow(QMainWindow):
         if confirmation == QMessageBox.StandardButton.No:
             return
         
+        # Determine default export filename
+        default_dir = ""
+        default_filename = ""
+        
+        if self.loaded_file_path:
+            # Get the directory and filename from the loaded file
+            file_path = pathlib.Path(self.loaded_file_path)
+            default_dir = str(file_path.parent)
+            
+            # Change extension to .txt for export
+            default_filename = file_path.stem + ".txt"
+        
+        # Open save dialog with the default name if available
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Parsed Message", "", "Text Files (*.txt);;All Files (*)"
+            self, 
+            "Export Parsed Message", 
+            os.path.join(default_dir, default_filename),
+            "Text Files (*.txt);;All Files (*)"
         )
         
         if not file_path:
