@@ -5,13 +5,13 @@ echo Starting HL7 Parser...
 call venv\Scripts\activate.bat
 
 :: Set environment variables to help PyQt find its DLLs
-set PYTHONPATH=%PYTHONPATH%;%~dp0venv\Lib\site-packages\PyQt6\Qt6\bin
-set PATH=%PATH%;%~dp0venv\Lib\site-packages\PyQt6\Qt6\bin
+set PYTHONPATH=%PYTHONPATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
+set PATH=%PATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
 
 :: Run the application
 python src\main.py
 
-:: Pause to keep the window open regardless of exit code
+:: Pause to keep the window open if the app closes unexpectedly
 echo.
 echo Application finished with exit code %ERRORLEVEL% 
 echo Press any key to close this window...

@@ -5,8 +5,8 @@ echo Starting HL7 Parser in DEBUG mode...
 call venv\Scripts\activate.bat
 
 :: Set environment variables to help PyQt find its DLLs
-set PYTHONPATH=%PYTHONPATH%;%~dp0venv\Lib\site-packages\PyQt6\Qt6\bin
-set PATH=%PATH%;%~dp0venv\Lib\site-packages\PyQt6\Qt6\bin
+set PYTHONPATH=%PYTHONPATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
+set PATH=%PATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
 
 :: Print environment path for debugging
 echo PATH = %PATH%

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+echo "Starting HL7 Parser..."
 
 # Activate virtual environment
 source venv/bin/activate

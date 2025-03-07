@@ -22,8 +22,10 @@ class HL7Parser:
             # Try to parse with version validation disabled if it's 2.5.1
             if version == '2.5.1':
                 # Fall back to version 2.5 which is supported
-                self.message = parse_message(text, find_groups=False, validation_level=2, force_version='2.5')
+                # Create a simple structure directly since hl7apy doesn't support forcing versions
+                self._create_simple_structure(text)
             else:
+                # Use default parser for supported versions
                 self.message = parse_message(text)
                 
             return True
