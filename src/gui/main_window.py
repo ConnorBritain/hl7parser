@@ -64,11 +64,12 @@ class MainWindow(QMainWindow):
         self.tree_view = QTreeView()
         self.tree_view.setMinimumHeight(300)
         self.tree_model = QStandardItemModel()
-        self.tree_model.setHorizontalHeaderLabels(["Element", "Value"])
+        self.tree_model.setHorizontalHeaderLabels(["Element", "Description", "Value"])
         
         # Set tooltips for the headers
         self.tree_model.setHeaderData(0, Qt.Orientation.Horizontal, "Segment and field elements", Qt.ItemDataRole.ToolTipRole)
-        self.tree_model.setHeaderData(1, Qt.Orientation.Horizontal, "Content values for each element", Qt.ItemDataRole.ToolTipRole)
+        self.tree_model.setHeaderData(1, Qt.Orientation.Horizontal, "Description of the HL7 element", Qt.ItemDataRole.ToolTipRole)
+        self.tree_model.setHeaderData(2, Qt.Orientation.Horizontal, "Content values for each element", Qt.ItemDataRole.ToolTipRole)
         
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setAlternatingRowColors(True)
@@ -135,7 +136,7 @@ class MainWindow(QMainWindow):
     
     def display_message_structure(self):
         self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels(["Element", "Value"])
+        self.tree_model.setHorizontalHeaderLabels(["Element", "Description", "Value"])
         
         structure = self.parser.get_structure()
         if not structure:
@@ -143,15 +144,20 @@ class MainWindow(QMainWindow):
         
         root_item = QStandardItem(structure['name'])
         
-        # Add tooltip to root item if description exists
+        # Get description for root item
+        description = ""
         if 'description' in structure and structure['description']:
-            root_item.setToolTip(structure['description'])
+            description = structure['description']
+            root_item.setToolTip(description)
+        
+        # Create description item
+        description_item = QStandardItem(description)
             
         if structure['value']:
             value_item = QStandardItem(structure['value'])
-            self.tree_model.appendRow([root_item, value_item])
+            self.tree_model.appendRow([root_item, description_item, value_item])
         else:
-            self.tree_model.appendRow([root_item, QStandardItem()])
+            self.tree_model.appendRow([root_item, description_item, QStandardItem()])
         
         self.populate_tree(root_item, structure['children'])
         
@@ -161,30 +167,36 @@ class MainWindow(QMainWindow):
         # Resize columns to show all content
         self.tree_view.header().setSectionResizeMode(0, self.tree_view.header().ResizeMode.ResizeToContents)
         self.tree_view.header().setSectionResizeMode(1, self.tree_view.header().ResizeMode.Stretch)
+        self.tree_view.header().setSectionResizeMode(2, self.tree_view.header().ResizeMode.ResizeToContents)
         
         # Initial resize
         self.tree_view.resizeColumnToContents(0)
         self.tree_view.resizeColumnToContents(1)
+        self.tree_view.resizeColumnToContents(2)
     
     def populate_tree(self, parent_item, children):
         for child in children:
             # Create item with name and description if available
             name_text = child['name']
+            description = ""
+            
             if 'description' in child and child['description']:
                 # Add tooltip with description
+                description = child['description']
                 child_item = QStandardItem(name_text)
-                child_item.setToolTip(child['description'])
+                child_item.setToolTip(description)
                 # Print first 5 items for debugging
                 if len(parent_item.text()) <= 3:  # Only for top-level segments
-                    print(f"Added tooltip for {name_text}: {child['description']}", file=sys.stderr)
+                    print(f"Added tooltip for {name_text}: {description}", file=sys.stderr)
             else:
                 child_item = QStandardItem(name_text)
                 if len(parent_item.text()) <= 3:  # Only for top-level segments
                     print(f"No description for {name_text}", file=sys.stderr)
                 
             value_item = QStandardItem(child['value'] if child['value'] else "")
+            description_item = QStandardItem(description)
             
-            parent_item.appendRow([child_item, value_item])
+            parent_item.appendRow([child_item, description_item, value_item])
             
             if child['children']:
                 self.populate_tree(child_item, child['children'])
@@ -192,7 +204,7 @@ class MainWindow(QMainWindow):
     def clear_input(self):
         self.input_text.clear()
         self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels(["Element", "Value"])
+        self.tree_model.setHorizontalHeaderLabels(["Element", "Description", "Value"])
     
     def copy_to_clipboard(self):
         if not self.parser.message:
@@ -249,12 +261,14 @@ class MainWindow(QMainWindow):
         # Resize columns to show content when items are expanded
         self.tree_view.resizeColumnToContents(0)  # Resize Element column
         self.tree_view.resizeColumnToContents(1)  # Resize Value column
+        self.tree_view.resizeColumnToContents(2)  # Resize Description column
         
     def on_item_collapsed(self, index):
         """Handle item collapse"""
         # Resize columns after collapse
         self.tree_view.resizeColumnToContents(0)
         self.tree_view.resizeColumnToContents(1)
+        self.tree_view.resizeColumnToContents(2)
         
     def closeEvent(self, event):
         """Handle window close event"""

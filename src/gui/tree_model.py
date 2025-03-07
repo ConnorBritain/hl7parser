@@ -2,9 +2,10 @@ from PyQt6.QtCore import Qt, QAbstractItemModel, QModelIndex
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
 class HL7TreeItem:
-    def __init__(self, name, value=None, parent=None):
+    def __init__(self, name, value=None, description=None, parent=None):
         self.name = name
         self.value = value
+        self.description = description
         self.parent_item = parent
         self.child_items = []
         
@@ -20,12 +21,15 @@ class HL7TreeItem:
         return len(self.child_items)
         
     def columnCount(self):
-        return 2  # Name and Value
+        return 3  # Name, Value, and Description
         
     def data(self, column):
         if column == 0:
             return self.name
         elif column == 1:
+            # Description column
+            return self.description if hasattr(self, 'description') else ""
+        elif column == 2:
             return self.value if self.value else ""
         return None
         
@@ -47,14 +51,16 @@ class HL7TreeModel(QAbstractItemModel):
         self.beginResetModel()
         self.root_item = HL7TreeItem("Root")
         if structure:
-            root = HL7TreeItem(structure['name'], structure['value'])
+            description = structure.get('description', '')
+            root = HL7TreeItem(structure['name'], structure['value'], description)
             self.root_item.appendChild(root)
             self._populate_tree(root, structure['children'])
         self.endResetModel()
         
     def _populate_tree(self, parent, children):
         for child in children:
-            item = HL7TreeItem(child['name'], child['value'], parent)
+            description = child.get('description', '')
+            item = HL7TreeItem(child['name'], child['value'], description, parent)
             parent.appendChild(item)
             if child['children']:
                 self._populate_tree(item, child['children'])
@@ -97,7 +103,7 @@ class HL7TreeModel(QAbstractItemModel):
         return parent_item.childCount()
         
     def columnCount(self, parent=QModelIndex()):
-        return 2
+        return 3
         
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -114,5 +120,7 @@ class HL7TreeModel(QAbstractItemModel):
             if section == 0:
                 return "Element"
             elif section == 1:
+                return "Description"
+            elif section == 2:
                 return "Value"
         return None
