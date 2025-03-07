@@ -8,9 +8,14 @@ call venv\Scripts\activate.bat
 python --version
 pip --version
 
-:: Uninstall and reinstall PyQt6
+:: Upgrade pip first
+pip install --upgrade pip
+
+:: Clean uninstall PyQt6 components
 pip uninstall -y PyQt6 PyQt6-Qt6 PyQt6-sip
-pip install PyQt6==6.5.0
+
+:: Install specific binary wheels that are known to work with Python 3.13
+pip install PyQt6==6.5.3 PyQt6-Qt6==6.5.3 PyQt6-sip==13.6.0
 
 echo.
 echo Repair complete! Run the application with:
