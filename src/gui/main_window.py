@@ -1,8 +1,9 @@
 import sys
+import os
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTextEdit, QPushButton, QFileDialog, QMessageBox,
                              QTreeView, QLabel, QSplitter, QFrame)
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtCore import Qt, QModelIndex, QSettings
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QClipboard
 
 from parser.hl7_parser import HL7Parser
@@ -13,6 +14,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.parser = HL7Parser()
+        
+        # Settings for the application
+        self.settings = QSettings("HL7Parser", "hl7parser")
+        
         self.init_ui()
         
     def init_ui(self):
@@ -76,8 +81,12 @@ class MainWindow(QMainWindow):
         self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
         
         # Make tree view expand to show all content
-        self.tree_view.setTextElideMode(Qt.TextElideMode.ElideNone)  # Prevent text truncation
+        self.tree_view.setTextElideMode(Qt.TextElideMode.ElideMiddle)  # Elide in middle if needed
         self.tree_view.setWordWrap(True)  # Enable word wrap
+        
+        # Make header responsive to user resizing
+        self.tree_view.header().setSectionsClickable(True)
+        self.tree_view.header().setDefaultSectionSize(150)
         
         # Connect signals to handle resizing when items expand
         self.tree_view.expanded.connect(self.on_item_expanded)
@@ -164,15 +173,28 @@ class MainWindow(QMainWindow):
         # Expand the first level
         self.tree_view.expandToDepth(0)
         
-        # Resize columns to show all content
-        self.tree_view.header().setSectionResizeMode(0, self.tree_view.header().ResizeMode.ResizeToContents)
-        self.tree_view.header().setSectionResizeMode(1, self.tree_view.header().ResizeMode.Stretch)
-        self.tree_view.header().setSectionResizeMode(2, self.tree_view.header().ResizeMode.ResizeToContents)
+        # Make columns interactive and resizable by user
+        self.tree_view.header().setSectionResizeMode(0, self.tree_view.header().ResizeMode.Interactive)
+        self.tree_view.header().setSectionResizeMode(1, self.tree_view.header().ResizeMode.Interactive)
+        self.tree_view.header().setSectionResizeMode(2, self.tree_view.header().ResizeMode.Interactive)
         
-        # Initial resize
-        self.tree_view.resizeColumnToContents(0)
-        self.tree_view.resizeColumnToContents(1)
-        self.tree_view.resizeColumnToContents(2)
+        # Load saved column widths from settings or use defaults
+        element_width = self.settings.value("column_widths/element", 150, type=int)
+        description_width = self.settings.value("column_widths/description", 300, type=int)
+        value_width = self.settings.value("column_widths/value", 150, type=int)
+        
+        # Set initial column sizes
+        self.tree_view.header().resizeSection(0, element_width)  # Element column
+        self.tree_view.header().resizeSection(1, description_width)  # Description column
+        self.tree_view.header().resizeSection(2, value_width)  # Value column
+        
+        # Connect to column resize signal
+        self.tree_view.header().sectionResized.connect(self.save_column_sizes)
+        
+        # Enable user ability to resize header sections
+        self.tree_view.header().setStretchLastSection(False)
+        self.tree_view.header().setSectionsMovable(False)  # Prevent column reordering
+        self.tree_view.header().setMinimumSectionSize(50)  # Minimum column width
     
     def populate_tree(self, parent_item, children):
         for child in children:
@@ -257,21 +279,35 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to export: {str(e)}")
             
     def on_item_expanded(self, index):
-        """Handle item expansion to ensure values are visible"""
-        # Resize columns to show content when items are expanded
-        self.tree_view.resizeColumnToContents(0)  # Resize Element column
-        self.tree_view.resizeColumnToContents(1)  # Resize Value column
-        self.tree_view.resizeColumnToContents(2)  # Resize Description column
+        """Handle item expansion without resizing columns to preserve user's column widths"""
+        # We don't auto-resize columns anymore to respect user's manual sizing
+        pass
         
     def on_item_collapsed(self, index):
-        """Handle item collapse"""
-        # Resize columns after collapse
-        self.tree_view.resizeColumnToContents(0)
-        self.tree_view.resizeColumnToContents(1)
-        self.tree_view.resizeColumnToContents(2)
+        """Handle item collapse without resizing columns to preserve user's column widths"""
+        # We don't auto-resize columns anymore to respect user's manual sizing
+        pass
+        
+    def save_column_sizes(self, logical_index, old_size, new_size):
+        """Save the column sizes when user resizes them"""
+        if logical_index == 0:
+            self.settings.setValue("column_widths/element", new_size)
+        elif logical_index == 1:
+            self.settings.setValue("column_widths/description", new_size)
+        elif logical_index == 2:
+            self.settings.setValue("column_widths/value", new_size)
+        
+        # Ensure settings are saved immediately
+        self.settings.sync()
         
     def closeEvent(self, event):
         """Handle window close event"""
+        # Save all column widths one last time before closing
+        self.settings.setValue("column_widths/element", self.tree_view.header().sectionSize(0))
+        self.settings.setValue("column_widths/description", self.tree_view.header().sectionSize(1))
+        self.settings.setValue("column_widths/value", self.tree_view.header().sectionSize(2))
+        self.settings.sync()
+        
         # This ensures the application fully exits when the window is closed
         # so the terminal doesn't wait for keypress
         event.accept()  # Accept the close event
