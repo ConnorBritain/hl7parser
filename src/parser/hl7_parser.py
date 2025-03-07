@@ -95,14 +95,13 @@ class HL7Parser:
         
         return totals
         
-    def _traverse_element(self, element, segment_counts, segment_totals):
+    def _traverse_element(self, element, segment_counts, segment_totals, parent_segment=None):
         """Recursively traverse HL7 elements to build a hierarchical structure"""
-        # Add segment numbering for top-level segments
         element_name = element.name
         display_name = element_name
         
-        # If this is a segment (3 letter name) 
-        if len(element_name) == 3 and element_name.isalpha():
+        # If this is a segment (3 letter name at top level)
+        if len(element_name) == 3 and element_name.isalpha() and parent_segment is None:
             # Initialize counter for this segment type if not exists
             if element_name not in segment_counts:
                 segment_counts[element_name] = 1
@@ -113,8 +112,19 @@ class HL7Parser:
             if segment_totals.get(element_name, 0) > 1:
                 display_name = f"{element_name} #{segment_counts[element_name]}"
             
+            # Remember this segment name for children
+            parent_segment = element_name
+        # If this is a field or component inside a segment, show the proper index format
+        elif parent_segment is not None:
+            # For fields, use format "MSH.1", "MSH.2", etc.
+            if '.' not in element_name and element_name.isdigit():
+                display_name = f"{parent_segment}.{element_name}"
+            # For existing field indices like "1", "2", just keep them
+            elif element_name.isdigit():
+                display_name = element_name
+            
         result = {
-            'name': display_name,  # Use the display name with segment number
+            'name': display_name,  # Use the appropriate display name 
             'raw_name': element_name,  # Keep the original name
             'value': str(element.value) if hasattr(element, 'value') else None,
             'children': []
@@ -123,7 +133,7 @@ class HL7Parser:
         # If the element has children
         if hasattr(element, 'children'):
             for child in element.children:
-                result['children'].append(self._traverse_element(child, segment_counts, segment_totals))
+                result['children'].append(self._traverse_element(child, segment_counts, segment_totals, parent_segment))
                 
         return result
 
@@ -207,7 +217,7 @@ class SimpleHL7Message:
             # Add fields as children of the segment
             for field in segment['fields']:
                 field_node = {
-                    'name': f"{segment_name}.{field['index']}",
+                    'name': f"{segment_name}.{field['index']}",  # Keep the format segment.index
                     'value': field['value'],
                     'children': []
                 }
