@@ -71,13 +71,31 @@ class HL7Parser:
         
         if isinstance(self.message, SimpleHL7Message):
             return self.message.get_structure()
-            
-        return self._traverse_element(self.message)
+        
+        # Get the structure with segment counting
+        segment_counts = {}
+        return self._traverse_element(self.message, segment_counts)
     
-    def _traverse_element(self, element):
+    def _traverse_element(self, element, segment_counts):
         """Recursively traverse HL7 elements to build a hierarchical structure"""
+        # Add segment numbering for top-level segments
+        element_name = element.name
+        display_name = element_name
+        
+        # If this is a segment (3 letter name) and not the MSH segment
+        if len(element_name) == 3 and element_name.isalpha():
+            # Initialize counter for this segment type if not exists
+            if element_name not in segment_counts:
+                segment_counts[element_name] = 1
+            else:
+                segment_counts[element_name] += 1
+                
+            # Add the segment number to the name
+            display_name = f"{element_name} #{segment_counts[element_name]}"
+            
         result = {
-            'name': element.name,
+            'name': display_name,  # Use the display name with segment number
+            'raw_name': element_name,  # Keep the original name
             'value': str(element.value) if hasattr(element, 'value') else None,
             'children': []
         }
@@ -85,7 +103,7 @@ class HL7Parser:
         # If the element has children
         if hasattr(element, 'children'):
             for child in element.children:
-                result['children'].append(self._traverse_element(child))
+                result['children'].append(self._traverse_element(child, segment_counts))
                 
         return result
 
@@ -135,10 +153,25 @@ class SimpleHL7Message:
             'children': []
         }
         
+        # Track segment counts
+        segment_counts = {}
+        
         # Add each segment as a child
         for segment in self.segments:
+            segment_name = segment['name']
+            
+            # Count segments of the same type
+            if segment_name not in segment_counts:
+                segment_counts[segment_name] = 1
+            else:
+                segment_counts[segment_name] += 1
+            
+            # Add segment number to the display name
+            display_name = f"{segment_name} #{segment_counts[segment_name]}"
+            
             segment_node = {
-                'name': segment['name'],
+                'name': display_name,
+                'raw_name': segment_name,
                 'value': '',
                 'children': []
             }
@@ -146,7 +179,7 @@ class SimpleHL7Message:
             # Add fields as children of the segment
             for field in segment['fields']:
                 field_node = {
-                    'name': f"{segment['name']}.{field['index']}",
+                    'name': f"{segment_name}.{field['index']}",
                     'value': field['value'],
                     'children': []
                 }
