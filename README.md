@@ -39,7 +39,7 @@ If you encounter any issues, try running `scripts/windows/repair.bat` to fix the
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/hl7parser.git
+git clone https://github.com/ConnorBritain/hl7parser.git
 cd hl7parser
 
 # Create virtual environment (recommended)
@@ -62,12 +62,30 @@ If you installed using the scripts:
 - macOS: Run `./scripts/macos/run.sh` in Terminal
 - Linux: Run `./scripts/linux/run.sh` in Terminal
 
+If you installed using the Windows installer:
+- Click the HL7 Parser icon on your desktop or start menu
+- Double-click any .hl7 file to open it with the application
+
 If you performed a manual setup:
 ```bash
 # Activate virtual environment if needed
 # Run the application
 python src/main.py
 ```
+
+## Creating a Windows Installer
+
+To create a standalone Windows executable with installer:
+
+1. Ensure you have Python and pip installed
+2. Install Inno Setup from https://jrsoftware.org/isdl.php
+3. Add Inno Setup to your PATH
+4. Run the build script:
+```
+cd packaging/windows
+build_installer.bat
+```
+5. The installer will be created in the `dist/installer` directory
 
 ## Examples
 
