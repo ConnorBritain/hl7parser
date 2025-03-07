@@ -72,26 +72,46 @@ class HL7Parser:
         if isinstance(self.message, SimpleHL7Message):
             return self.message.get_structure()
         
+        # First, scan the message to count total segments of each type
+        segment_totals = self._count_segment_types(self.message)
+        
         # Get the structure with segment counting
         segment_counts = {}
-        return self._traverse_element(self.message, segment_counts)
+        return self._traverse_element(self.message, segment_counts, segment_totals)
     
-    def _traverse_element(self, element, segment_counts):
+    def _count_segment_types(self, element):
+        """Count how many of each segment type are in the message"""
+        totals = {}
+        
+        # Process this element if it's a segment
+        if len(element.name) == 3 and element.name.isalpha():
+            totals[element.name] = 1
+        
+        # Process children
+        if hasattr(element, 'children'):
+            for child in element.children:
+                if len(child.name) == 3 and child.name.isalpha():
+                    totals[child.name] = totals.get(child.name, 0) + 1
+        
+        return totals
+        
+    def _traverse_element(self, element, segment_counts, segment_totals):
         """Recursively traverse HL7 elements to build a hierarchical structure"""
         # Add segment numbering for top-level segments
         element_name = element.name
         display_name = element_name
         
-        # If this is a segment (3 letter name) and not the MSH segment
+        # If this is a segment (3 letter name) 
         if len(element_name) == 3 and element_name.isalpha():
             # Initialize counter for this segment type if not exists
             if element_name not in segment_counts:
                 segment_counts[element_name] = 1
             else:
                 segment_counts[element_name] += 1
-                
-            # Add the segment number to the name
-            display_name = f"{element_name} #{segment_counts[element_name]}"
+            
+            # Only add the number if there are multiple segments of this type
+            if segment_totals.get(element_name, 0) > 1:
+                display_name = f"{element_name} #{segment_counts[element_name]}"
             
         result = {
             'name': display_name,  # Use the display name with segment number
@@ -103,7 +123,7 @@ class HL7Parser:
         # If the element has children
         if hasattr(element, 'children'):
             for child in element.children:
-                result['children'].append(self._traverse_element(child, segment_counts))
+                result['children'].append(self._traverse_element(child, segment_counts, segment_totals))
                 
         return result
 
@@ -149,11 +169,17 @@ class SimpleHL7Message:
             
         result = {
             'name': 'Message',
-            'value': f"Simplified Parser (compatibility mode)",
+            'value': "",  # Remove Simplified Parser text
             'children': []
         }
         
-        # Track segment counts
+        # First pass - count total segments of each type
+        segment_totals = {}
+        for segment in self.segments:
+            segment_name = segment['name']
+            segment_totals[segment_name] = segment_totals.get(segment_name, 0) + 1
+            
+        # Track segment counts for the second pass
         segment_counts = {}
         
         # Add each segment as a child
@@ -166,8 +192,10 @@ class SimpleHL7Message:
             else:
                 segment_counts[segment_name] += 1
             
-            # Add segment number to the display name
-            display_name = f"{segment_name} #{segment_counts[segment_name]}"
+            # Only add segment number if there are multiple segments of this type
+            display_name = segment_name
+            if segment_totals[segment_name] > 1:
+                display_name = f"{segment_name} #{segment_counts[segment_name]}"
             
             segment_node = {
                 'name': display_name,
