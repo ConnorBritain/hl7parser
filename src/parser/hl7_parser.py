@@ -149,6 +149,11 @@ class HL7Parser:
                 
         value = str(element.value) if hasattr(element, 'value') else None
         
+        # Special case for MSH-1 field - field separator character
+        if parent_segment == 'MSH' and element_name == '1':
+            # MSH-1 is always the field separator character (|)
+            value = '|'
+        
         # Special handling for MSH-9 (Message Type) field
         if parent_segment == 'MSH' and element_name == '9' and value and '^' in value:
             # Try to extract the message type and trigger event
@@ -199,12 +204,27 @@ class SimpleHL7Message:
                 'fields': []
             }
             
-            # Add each field to the segment
-            for i, field in enumerate(fields[1:], 1):
+            # Special case for MSH segment - handle MSH-1 field correctly
+            if segment_name == 'MSH':
+                # MSH-1 is the field separator character (|)
                 segment['fields'].append({
-                    'index': i,
-                    'value': field
+                    'index': 1,
+                    'value': '|'  # This is always | per HL7 standard
                 })
+                
+                # Continue with the rest of fields, but offset by 1
+                for i, field in enumerate(fields[1:], 2):
+                    segment['fields'].append({
+                        'index': i,
+                        'value': field
+                    })
+            else:
+                # Regular segment - add each field to the segment
+                for i, field in enumerate(fields[1:], 1):
+                    segment['fields'].append({
+                        'index': i,
+                        'value': field
+                    })
                 
             self.segments.append(segment)
     

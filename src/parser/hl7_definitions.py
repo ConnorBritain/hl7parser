@@ -184,7 +184,7 @@ HL7_SEGMENTS = {
 # Field definitions for each segment
 HL7_FIELDS = {
     'MSH': {
-        '1': 'Field Separator',
+        '1': 'Field Separator (always |)',
         '2': 'Encoding Characters',
         '3': 'Sending Application',
         '4': 'Sending Facility',
