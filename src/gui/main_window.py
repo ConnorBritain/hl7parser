@@ -64,6 +64,11 @@ class MainWindow(QMainWindow):
         self.tree_view.setMinimumHeight(300)
         self.tree_model = QStandardItemModel()
         self.tree_model.setHorizontalHeaderLabels(["Element", "Value"])
+        
+        # Set tooltips for the headers
+        self.tree_model.setHeaderData(0, Qt.Orientation.Horizontal, "Segment and field elements", Qt.ItemDataRole.ToolTipRole)
+        self.tree_model.setHeaderData(1, Qt.Orientation.Horizontal, "Content values for each element", Qt.ItemDataRole.ToolTipRole)
+        
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setAlternatingRowColors(True)
         self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
@@ -157,7 +162,15 @@ class MainWindow(QMainWindow):
     
     def populate_tree(self, parent_item, children):
         for child in children:
-            child_item = QStandardItem(child['name'])
+            # Create item with name and description if available
+            name_text = child['name']
+            if 'description' in child and child['description']:
+                # Add tooltip with description
+                child_item = QStandardItem(name_text)
+                child_item.setToolTip(child['description'])
+            else:
+                child_item = QStandardItem(name_text)
+                
             value_item = QStandardItem(child['value'] if child['value'] else "")
             
             parent_item.appendRow([child_item, value_item])

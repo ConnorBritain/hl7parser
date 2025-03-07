@@ -2,6 +2,7 @@ from hl7apy.parser import parse_message
 from hl7apy.core import Message
 import io
 import re
+from .hl7_definitions import HL7_SEGMENTS, HL7_FIELDS, ADT_CODES
 
 class HL7Parser:
     def __init__(self):
@@ -116,17 +117,41 @@ class HL7Parser:
             parent_segment = element_name
         # If this is a field or component inside a segment, show the proper index format
         elif parent_segment is not None:
-            # For fields, use format "MSH.1", "MSH.2", etc.
+            # For fields, use format "MSH-1", "MSH-2", etc.
             if '.' not in element_name and element_name.isdigit():
-                display_name = f"{parent_segment}.{element_name}"
+                display_name = f"{parent_segment}-{element_name}"
             # For existing field indices like "1", "2", just keep them
             elif element_name.isdigit():
                 display_name = element_name
             
+        # Add segment/field description
+        description = ""
+        if len(element_name) == 3 and element_name.isalpha() and parent_segment is None:
+            # Segment description
+            description = HL7_SEGMENTS.get(element_name, "Unknown Segment")
+        elif parent_segment is not None and element_name.isdigit():
+            # Field description
+            if parent_segment in HL7_FIELDS and element_name in HL7_FIELDS[parent_segment]:
+                description = HL7_FIELDS[parent_segment][element_name]
+            else:
+                description = f"Field {element_name}"
+                
+        value = str(element.value) if hasattr(element, 'value') else None
+        
+        # Special handling for MSH-9 (Message Type) field
+        if parent_segment == 'MSH' and element_name == '9' and value and '^' in value:
+            # Try to extract the message type and trigger event
+            parts = value.split('^')
+            if len(parts) >= 2 and parts[0] == 'ADT':
+                event_code = parts[1]
+                if event_code in ADT_CODES:
+                    description += f" - {ADT_CODES[event_code]}"
+                    
         result = {
             'name': display_name,  # Use the appropriate display name 
             'raw_name': element_name,  # Keep the original name
-            'value': str(element.value) if hasattr(element, 'value') else None,
+            'description': description,
+            'value': value,
             'children': []
         }
         
@@ -180,6 +205,7 @@ class SimpleHL7Message:
         result = {
             'name': 'Message',
             'value': "",  # Remove Simplified Parser text
+            'description': "HL7 Message",
             'children': []
         }
         
@@ -210,14 +236,33 @@ class SimpleHL7Message:
             segment_node = {
                 'name': display_name,
                 'raw_name': segment_name,
+                'description': HL7_SEGMENTS.get(segment_name, "Unknown Segment"),
                 'value': '',
                 'children': []
             }
             
             # Add fields as children of the segment
             for field in segment['fields']:
+                field_index = str(field['index'])
+                description = "Unknown Field"
+                
+                # Look up field description if available
+                if segment_name in HL7_FIELDS and field_index in HL7_FIELDS[segment_name]:
+                    description = HL7_FIELDS[segment_name][field_index]
+                
+                # Special handling for MSH-9 (Message Type) field
+                if segment_name == 'MSH' and field_index == '9' and field['value'] and '^' in field['value']:
+                    # Try to extract the message type and trigger event
+                    parts = field['value'].split('^')
+                    if len(parts) >= 2 and parts[0] == 'ADT':
+                        event_code = parts[1]
+                        if event_code in ADT_CODES:
+                            description += f" - {ADT_CODES[event_code]}"
+                
                 field_node = {
-                    'name': f"{segment_name}.{field['index']}",  # Keep the format segment.index
+                    'name': f"{segment_name}-{field_index}",  # Use dash format for segment fields
+                    'raw_name': field_index,
+                    'description': description,
                     'value': field['value'],
                     'children': []
                 }
