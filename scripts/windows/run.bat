@@ -8,11 +8,13 @@ call venv\Scripts\activate.bat
 set PYTHONPATH=%PYTHONPATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
 set PATH=%PATH%;%~dp0..\..\venv\Lib\site-packages\PyQt6\Qt6\bin
 
-:: Run the application
-python src\main.py
+:: Run the application - the window will auto-close when app exits
+start /wait "" python src\main.py
 
-:: Pause to keep the window open if the app closes unexpectedly
-echo.
-echo Application finished with exit code %ERRORLEVEL% 
-echo Press any key to close this window...
-pause > nul
+:: Only show the pause if there was an error
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo Application finished with error code %ERRORLEVEL% 
+    echo Press any key to close this window...
+    pause > nul
+)

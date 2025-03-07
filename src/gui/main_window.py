@@ -68,6 +68,14 @@ class MainWindow(QMainWindow):
         self.tree_view.setAlternatingRowColors(True)
         self.tree_view.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
         
+        # Make tree view expand to show all content
+        self.tree_view.setTextElideMode(Qt.TextElideMode.ElideNone)  # Prevent text truncation
+        self.tree_view.setWordWrap(True)  # Enable word wrap
+        
+        # Connect signals to handle resizing when items expand
+        self.tree_view.expanded.connect(self.on_item_expanded)
+        self.tree_view.collapsed.connect(self.on_item_collapsed)
+        
         export_layout = QHBoxLayout()
         self.copy_button = QPushButton("Copy to Clipboard")
         self.copy_button.clicked.connect(self.copy_to_clipboard)
@@ -138,7 +146,12 @@ class MainWindow(QMainWindow):
         
         # Expand the first level
         self.tree_view.expandToDepth(0)
-        # Resize columns to content
+        
+        # Resize columns to show all content
+        self.tree_view.header().setSectionResizeMode(0, self.tree_view.header().ResizeMode.ResizeToContents)
+        self.tree_view.header().setSectionResizeMode(1, self.tree_view.header().ResizeMode.Stretch)
+        
+        # Initial resize
         self.tree_view.resizeColumnToContents(0)
         self.tree_view.resizeColumnToContents(1)
     
@@ -206,3 +219,25 @@ class MainWindow(QMainWindow):
             )
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to export: {str(e)}")
+            
+    def on_item_expanded(self, index):
+        """Handle item expansion to ensure values are visible"""
+        # Resize columns to show content when items are expanded
+        self.tree_view.resizeColumnToContents(0)  # Resize Element column
+        self.tree_view.resizeColumnToContents(1)  # Resize Value column
+        
+    def on_item_collapsed(self, index):
+        """Handle item collapse"""
+        # Resize columns after collapse
+        self.tree_view.resizeColumnToContents(0)
+        self.tree_view.resizeColumnToContents(1)
+        
+    def closeEvent(self, event):
+        """Handle window close event"""
+        # This ensures the application fully exits when the window is closed
+        # so the terminal doesn't wait for keypress
+        event.accept()  # Accept the close event
+        self.window().deleteLater()  # Schedule the window for deletion
+        # Use exit with code 0 to terminate completely
+        import sys
+        sys.exit(0)
