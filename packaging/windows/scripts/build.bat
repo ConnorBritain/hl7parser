@@ -19,34 +19,45 @@ echo Build process started at %date% %time% > !LOG_FILE!
 echo. >> !LOG_FILE!
 
 :: Step 1: Build the installer
-echo Step 1: Building installer... | tee -a !LOG_FILE!
+echo Step 1: Building installer...
+echo Step 1: Building installer... >> !LOG_FILE!
 call build_installer.bat
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Installer build failed | tee -a !LOG_FILE!
+    echo ERROR: Installer build failed
+    echo ERROR: Installer build failed >> !LOG_FILE!
     exit /b 1
 )
 
 :: Step 2: Test the executable
-echo. | tee -a !LOG_FILE!
-echo Step 2: Testing executable... | tee -a !LOG_FILE!
+echo.
+echo. >> !LOG_FILE!
+echo Step 2: Testing executable...
+echo Step 2: Testing executable... >> !LOG_FILE!
 call test_build.bat
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Executable test failed | tee -a !LOG_FILE!
+    echo ERROR: Executable test failed
+    echo ERROR: Executable test failed >> !LOG_FILE!
     exit /b 1
 )
 
 :: Step 3: Verify the installer exists
-echo. | tee -a !LOG_FILE!
-echo Step 3: Verifying installer... | tee -a !LOG_FILE!
+echo.
+echo. >> !LOG_FILE!
+echo Step 3: Verifying installer...
+echo Step 3: Verifying installer... >> !LOG_FILE!
 if not exist ..\..\..\dist\installer\HL7Parser_Setup.exe (
-    echo ERROR: Installer not found at expected location | tee -a !LOG_FILE!
+    echo ERROR: Installer not found at expected location
+    echo ERROR: Installer not found at expected location >> !LOG_FILE!
     exit /b 1
 )
 
 :: Build completed successfully
-echo. | tee -a !LOG_FILE!
-echo Build process completed successfully! | tee -a !LOG_FILE!
-echo Installer: ..\..\..\dist\installer\HL7Parser_Setup.exe | tee -a !LOG_FILE!
+echo.
+echo. >> !LOG_FILE!
+echo Build process completed successfully!
+echo Build process completed successfully! >> !LOG_FILE!
+echo Installer: ..\..\..\dist\installer\HL7Parser_Setup.exe
+echo Installer: ..\..\..\dist\installer\HL7Parser_Setup.exe >> !LOG_FILE!
 echo Master log: !LOG_FILE!
 
 echo.
