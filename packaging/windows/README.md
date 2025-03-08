@@ -1,11 +1,24 @@
 # Windows Packaging Guide
 
-This directory contains scripts to build a standalone Windows executable and installer for the HL7 Parser application.
+This directory contains scripts and configuration files to build a standalone Windows executable and installer for the HL7 Parser application.
+
+## Directory Organization
+
+- **`/config/`**: Configuration files
+  - `installer.iss`: Inno Setup script for creating the installer
+  - `version_info.py`: Generates Windows version information
+  - `windows_version_info.txt`: Generated version resource for Windows executable
+
+- **`/scripts/`**: Build scripts
+  - `build.bat`: Master build script that orchestrates the entire process
+  - `build_installer.bat`: Script for building the installer with Inno Setup
+  - `build_exe.py`: Python script for building the executable with PyInstaller
+  - `test_build.bat`: Script for testing the built executable
 
 ## Prerequisites
 
 1. **Python Environment**:
-   - Python 3.6 or higher
+   - Python 3.8 or higher
    - Required packages: install with `pip install -r requirements.txt`
 
 2. **Inno Setup**:
@@ -14,31 +27,46 @@ This directory contains scripts to build a standalone Windows executable and ins
 
 ## Building the Application
 
-### Step 1: Build the Executable
+### One-Step Build Process (Recommended)
 
-Run the following command from the project root directory:
+Run the master build script from the project root directory:
 
 ```bash
-python packaging/windows/build_exe.py
+cd packaging/windows/scripts
+build.bat
 ```
 
 This will:
-- Clean any previous build artifacts
-- Create a PyInstaller spec file
-- Run PyInstaller to build the executable
-- Package all dependencies into a standalone application
+1. Build the executable with PyInstaller using app.py
+2. Create the installer with Inno Setup
+3. Test the executable to ensure it works
+4. Open the folder containing the installer when complete
 
-The executable will be created in the `dist/HL7Parser` directory.
+### Step-by-Step Build Process
 
-### Step 2: Create the Installer
+If you need more control over the build process:
 
-After building the executable, compile the Inno Setup script to create the installer:
+1. Build the executable:
+   ```
+   cd packaging/windows/scripts
+   python build_exe.py
+   ```
 
-```bash
-iscc packaging/windows/installer.iss
-```
+2. Create the installer:
+   ```
+   build_installer.bat
+   ```
 
-This will create an installer EXE file in the `dist/installer` directory.
+3. Test the build:
+   ```
+   test_build.bat
+   ```
+
+## Build Output and Logs
+
+- Executable: `dist/HL7Parser/HL7Parser.exe`
+- Installer: `dist/installer/HL7Parser_Setup.exe`
+- Logs: All build logs are saved in the `logs/` directory
 
 ## Customizing the Build
 
@@ -49,28 +77,27 @@ This will create an installer EXE file in the `dist/installer` directory.
 
 ### Version Information
 
-- Update the version information in both:
-  - `packaging/windows/build_exe.py` (APP_VERSION variable)
-  - `packaging/windows/installer.iss` (#define MyAppVersion)
+- Update the version information in:
+  - `config/version_info.py` (VERSION_INFO dictionary)
+  - `config/installer.iss` (#define MyAppVersion)
+  - `scripts/build_exe.py` (APP_VERSION variable)
 
 ### Publisher Information
 
-- Update the publisher information in `packaging/windows/installer.iss`
+- Update the publisher information in `config/installer.iss`
 
-## Fixing Potential Issues
+## Troubleshooting
 
-### Missing DLLs
+All build scripts create detailed logs to help diagnose issues:
 
-If the application fails to start due to missing DLLs, you may need to modify the PyInstaller spec file to include additional dependencies.
+- `logs/master_build_*.log`: Main build log
+- `logs/build_*.log`: Installer build log
+- `logs/pyinstaller_*.log`: PyInstaller detailed log
+- `logs/test_*.log`: Build test log
 
-### Antivirus False Positives
+The key improvements in the current build system:
 
-Some antivirus software may flag PyInstaller-created executables as suspicious. This is a known issue with PyInstaller. Options to address this:
-
-1. Submit the application to antivirus vendors for whitelisting
-2. Use a code signing certificate to sign the executable
-3. Use an alternative packaging solution (e.g., cx_Freeze or py2exe)
-
-### File Associations
-
-The installer sets up file associations for .hl7 files. If you need to change these or add more associations, modify the [Registry] section in the installer.iss file.
+1. **Enhanced logging**: Comprehensive logging at all stages of the build
+2. **Standalone application**: Uses app.py as the single-file entry point
+3. **Automated testing**: Verifies the built executable works correctly
+4. **Improved error handling**: Better error detection and reporting
