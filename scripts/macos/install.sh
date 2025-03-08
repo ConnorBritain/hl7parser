@@ -1,4 +1,5 @@
 #!/bin/bash
+cd "$(dirname "$0")/../.." || exit 1
 echo "Installing HL7 Parser..."
 
 # Create and activate virtual environment
@@ -9,9 +10,9 @@ source venv/bin/activate
 echo "Upgrading pip..."
 pip install --upgrade pip
 
-# Install dependencies
+# Install dependencies from requirements.txt
 echo "Installing dependencies..."
-pip install PyQt6==6.5.3 hl7apy==1.3.4 pytest==7.3.1
+pip install -r requirements.txt
 
 echo -e "\nInstallation complete! Run the parser with:"
-echo "scripts/macos/run.sh"
+echo "./run.py"
